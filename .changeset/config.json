@@ -1,16 +1,19 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "stevedylandev/hello" }],
-  "commit": true,
-  "access": "public",
-  "baseBranch": "main",
-  "fixed": [],
-  "linked": [],
-  "updateInternalDependencies": "patch",
-  "prettier": true,
-  "ignore": [],
-    "privatePackages": {
-    "version": true,
-    "tag": true
-  }
+	"$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
+	"changelog": [
+		"@changesets/changelog-github",
+		{ "repo": "stevedylandev/hello-goodbye" }
+	],
+	"commit": true,
+	"access": "public",
+	"baseBranch": "main",
+	"fixed": [["@stevedylandev/goodbye", "@stevedylandev/hello"]],
+	"linked": [],
+	"updateInternalDependencies": "patch",
+	"prettier": true,
+	"ignore": [],
+	"privatePackages": {
+		"version": true,
+		"tag": true
+	}
 }
