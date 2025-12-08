@@ -5,7 +5,7 @@
 	"main": "./dist/index.js",
 	"type": "module",
 	"bin": {
-		"hello": "./dist/index.js"
+		"goodbye": "./dist/index.js"
 	},
 	"scripts": {
 		"build": "tsup",
