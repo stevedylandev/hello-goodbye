@@ -14,7 +14,7 @@
 	"scripts": {
 		"build": "tsup",
 		"dev": "tsup --watch",
-		"prepublishOnly": "npm run build"
+		"prepublish": "npm run build"
 	},
 	"keywords": [
 		"cli",
