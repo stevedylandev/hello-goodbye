@@ -7,6 +7,10 @@
 	"bin": {
 		"goodbye": "./dist/index.js"
 	},
+	"files": [
+		"README.md",
+		"dist"
+	],
 	"scripts": {
 		"build": "tsup",
 		"dev": "tsup --watch",
