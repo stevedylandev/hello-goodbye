@@ -1,5 +1,15 @@
 # @stevedylandev/goodbye
 
+## 0.2.0
+
+### Minor Changes
+
+- [#3](https://github.com/stevedylandev/hello-goodbye/pull/3) [`d65d9aa`](https://github.com/stevedylandev/hello-goodbye/commit/d65d9aa18d0c885c494d6c7be1a391ac87f8243e) Thanks [@stevedylandev](https://github.com/stevedylandev)! - New goodbye
+
+### Patch Changes
+
+- [#1](https://github.com/stevedylandev/hello-goodbye/pull/1) [`baa831d`](https://github.com/stevedylandev/hello-goodbye/commit/baa831dc225964fd3796e06112f399306d78f54f) Thanks [@stevedylandev](https://github.com/stevedylandev)! - Updated workflows
+
 ## 0.1.0
 
 ### Minor Changes
