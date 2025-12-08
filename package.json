@@ -6,8 +6,10 @@
 	"type": "module",
 	"scripts": {
 		"changeset": "changeset",
-		"version": "changeset version",
-		"changeset-publish": "changeset publish",
+		"bump:stable": "changeset version",
+		"bump:next": "changeset version --snapshot",
+		"release:stable": "changeset publish",
+		"release:next": "pnpm publish -r --access public --tag next",
 		"packages:prepublish": "pnpm -r prepublish"
 	},
 	"devDependencies": {
