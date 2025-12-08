@@ -4,6 +4,7 @@
 	"private": true,
 	"description": "Monorepo workspace for hello projects",
 	"type": "module",
+	"packageManager": "pnpm@9.15.2",
 	"scripts": {
 		"changeset": "changeset",
 		"bump:stable": "changeset version",
