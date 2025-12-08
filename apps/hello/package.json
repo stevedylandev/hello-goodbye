@@ -1,5 +1,5 @@
 {
-	"name": "hello",
+	"name": "@stevedylandev/hello",
 	"version": "0.0.1",
 	"description": "A simple CLI tool that echoes hello with your name",
 	"main": "./dist/index.js",
