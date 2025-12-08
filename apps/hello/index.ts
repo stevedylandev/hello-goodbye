@@ -4,7 +4,7 @@ const args = process.argv.slice(2);
 const name = args.join(" ");
 
 if (name) {
-  console.log(`Hello ${name}!`);
+	console.log(`Hello ${name}!`);
 } else {
-  console.log("Hello!");
+	console.log("Hello buddy!");
 }
