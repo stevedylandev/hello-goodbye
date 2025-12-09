@@ -1,6 +1,6 @@
 {
 	"name": "@stevedylandev/hello",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"description": "A simple CLI tool that echoes hello with your name",
 	"main": "./dist/index.js",
 	"type": "module",
