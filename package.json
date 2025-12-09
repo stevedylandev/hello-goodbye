@@ -8,9 +8,9 @@
 	"scripts": {
 		"changeset": "changeset",
 		"bump:stable": "changeset version",
-		"bump:next": "changeset version --snapshot",
+		"bump:next": "changeset version --snapshot next",
 		"release:stable": "changeset publish",
-		"release:next": "pnpm publish -r --access public --tag next",
+		"release:next": "changeset publish --no-git-tag --snapshot --tag next",
 		"packages:prepublish": "pnpm -r prepublish"
 	},
 	"devDependencies": {
