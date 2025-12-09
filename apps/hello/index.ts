@@ -6,5 +6,5 @@ const name = args.join(" ");
 if (name) {
 	console.log(`Hello ${name}!`);
 } else {
-	console.log("Hello friend!");
+	console.log("Hello good friend!");
 }
