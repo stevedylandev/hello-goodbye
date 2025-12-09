@@ -16,11 +16,8 @@
 		"version": true,
 		"tag": true
 	},
-	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
-		"useCalculatedVersionForSnapshots": true
-	},
 	"snapshot": {
 		"useCalculatedVersion": true,
-		"prereleaseTemplate": "next.{timestamp}"
+		"prereleaseTemplate": "{tag}.{timestamp}"
 	}
 }
