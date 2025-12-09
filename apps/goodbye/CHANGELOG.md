@@ -1,5 +1,11 @@
 # @stevedylandev/goodbye
 
+## 0.2.3
+
+### Patch Changes
+
+- [#11](https://github.com/stevedylandev/hello-goodbye/pull/11) [`153ce93`](https://github.com/stevedylandev/hello-goodbye/commit/153ce93732b883cdbe223891d52e2b1f67c0f251) Thanks [@stevedylandev](https://github.com/stevedylandev)! - Updated goodbye
+
 ## 0.2.2
 
 ## 0.2.1
