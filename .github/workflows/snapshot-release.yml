@@ -1,0 +1,46 @@
+name: Snapshot Release (@next)
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  snapshot:
+    name: Publish Snapshot
+    if: github.repository == 'stevedylandev/hello-goodbye'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for NPM provenance
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@v5
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm packages:prepublish
+
+      - name: Version snapshot
+        run: pnpm bump:next
+
+      - name: Publish snapshot
+        run: pnpm release:next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
