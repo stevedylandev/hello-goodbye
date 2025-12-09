@@ -1,6 +1,6 @@
 {
 	"name": "@stevedylandev/goodbye",
-	"version": "0.2.4",
+	"version": "0.2.5",
 	"description": "A simple CLI tool that echoes goodbye with your name",
 	"main": "./dist/index.js",
 	"type": "module",
