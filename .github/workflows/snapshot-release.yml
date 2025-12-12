@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Required for NPM provenance
+    outputs:
+      hasChanges: ${{ steps.snapshot.outputs.hasChanges }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,41 +39,43 @@ jobs:
         run: pnpm packages:prepublish
 
       - name: Version snapshot
-        run: pnpm bump:next
+        id: snapshot
+        run: |
+          pnpm bump:next
+          # Check if there are any changes to publish
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "hasChanges=true" >> $GITHUB_OUTPUT
+          else
+            echo "hasChanges=false" >> $GITHUB_OUTPUT
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish snapshot
+        if: steps.snapshot.outputs.hasChanges == 'true'
         run: pnpm release:next
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  build-snapshot-docker-images:
-    name: Build and Push Snapshot Docker Images
+  build-and-push-snapshot-docker-images:
+    name: Build Snapshot Docker Images
     runs-on: ubuntu-latest
-    if: github.repository == 'stevedylandev/hello-goodbye' && !contains(github.event.head_commit.message, 'changeset-release/main')
+    if: github.repository == 'stevedylandev/hello-goodbye' && !contains(github.event.head_commit.message, 'changeset-release/main') && needs.snapshot.outputs.hasChanges == 'true'
     needs: [snapshot]
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         app: [hello, goodbye]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
       - name: Generate snapshot tag
         id: snapshot-tag
@@ -81,14 +85,13 @@ jobs:
           SNAPSHOT_TAG="next-${TIMESTAMP}-${SHORT_SHA}"
           echo "tag=$SNAPSHOT_TAG" >> $GITHUB_OUTPUT
 
-      - name: Build and push snapshot Docker image
-        uses: docker/build-push-action@v5
+      - name: Build & Push
+        uses: ./.github/actions/build_docker_image
         with:
-          context: ./apps/${{ matrix.app }}
-          push: true
-          platforms: linux/amd64,linux/arm64
+          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}
+          dockerfile: apps/${{ matrix.app }}/Dockerfile
+          registry_user: ${{ github.actor }}
+          registry_token: ${{ secrets.GITHUB_TOKEN }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}:next
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}:${{ steps.snapshot-tag.outputs.tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            type=raw,value=next
+            type=raw,value=${{ steps.snapshot-tag.outputs.tag }}

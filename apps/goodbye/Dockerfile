@@ -1,36 +1,26 @@
-# Build stage
-FROM node:20-alpine AS builder
-
+FROM node:20 AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 WORKDIR /app
 
-# Copy package files and source
-COPY package.json ./
-COPY tsup.config.ts ./
-COPY tsconfig.json ./
-COPY index.ts ./
+# deps
+FROM base AS deps
+COPY . .
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# Install all dependencies (including dev dependencies for building)
-RUN npm install
+# build
+FROM deps AS builder
+WORKDIR /app/apps/goodbye
+RUN pnpm build
 
-# Build the application
-RUN npm run build
-
-# Verify the build output exists
-RUN ls -la dist/
-
-# Production stage
-FROM node:20-alpine AS production
-
+# runner
+FROM node:20-alpine AS runner
 WORKDIR /app
-
-# Copy only the built application
-COPY --from=builder /app/dist ./dist
-
-# Create a non-root user
+COPY --from=builder /app/apps/goodbye/dist ./dist
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
-
 USER appuser
+ENV NODE_ENV=production
 
-# Set the default command
 ENTRYPOINT ["node", "dist/index.js"]
