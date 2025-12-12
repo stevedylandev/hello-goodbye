@@ -137,6 +137,10 @@ jobs:
           pnpm changeset version --snapshot ${{ needs.validate-and-prepare.outputs.snapshot-tag }}
 
           echo "📦 Packages versioned with snapshot tag: ${{ needs.validate-and-prepare.outputs.snapshot-tag }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish packages with changesets
         id: publish
@@ -155,6 +159,7 @@ jobs:
           echo "  - @stevedylandev/hello@${PUBLISHED_VERSION}"
           echo "  - @stevedylandev/goodbye@${PUBLISHED_VERSION}"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
