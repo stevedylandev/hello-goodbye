@@ -273,7 +273,7 @@ jobs:
         if: steps.detect-pr.outputs.has-pr == 'true'
         run: |
           # Look for existing comment from github-actions bot
-          COMMENT_ID=$(gh pr view ${{ steps.detect-pr.outputs.pr-number }} --json comments --jq '.comments[] | select(.author.login == "github-actions[bot]" and (.body | contains("🚀 Preview Packages"))) | .id' | head -1)
+          COMMENT_ID=$(gh pr view ${{ steps.detect-pr.outputs.pr-number }} --json comments --jq '.comments[] | select(.author.login == "github-actions" and (.body | contains("🚀 Preview Packages"))) | .id' | head -1)
 
           if [[ -n "$COMMENT_ID" ]]; then
             echo "existing-comment-id=${COMMENT_ID}" >> $GITHUB_OUTPUT
