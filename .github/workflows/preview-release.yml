@@ -20,7 +20,7 @@ on:
         type: boolean
         default: false
 
-concurrency: 
+concurrency:
   group: prerelease-${{ github.ref_name }}
   cancel-in-progress: true
 
@@ -55,10 +55,10 @@ jobs:
         run: |
           # Get current timestamp
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          
+
           # Get short commit SHA
           COMMIT_SHA=$(git rev-parse --short HEAD)
-          
+
           # Sanitize branch name for use in versions and tags
           if [[ -n "${{ inputs.custom_suffix }}" ]]; then
             BRANCH_SUFFIX="${{ inputs.custom_suffix }}"
@@ -81,25 +81,25 @@ jobs:
             # Remove leading dashes
             BRANCH_SUFFIX="${BRANCH_SUFFIX#-}"
           fi
-          
+
           # Read current version from hello package (both packages use same version)
           CURRENT_VERSION=$(node -p "require('./apps/hello/package.json').version")
-          
+
           # Create preview version
           PREVIEW_VERSION="${CURRENT_VERSION}-preview-${BRANCH_SUFFIX}.${TIMESTAMP}"
-          
+
           # Create dist-tag (NPM doesn't allow dots in tags)
           DIST_TAG="preview-${BRANCH_SUFFIX}"
-          
+
           # Docker tag base (no version, just branch)
           DOCKER_TAG_BASE="preview-${BRANCH_SUFFIX}"
-          
+
           echo "branch-suffix=${BRANCH_SUFFIX}" >> $GITHUB_OUTPUT
           echo "dist-tag=${DIST_TAG}" >> $GITHUB_OUTPUT
           echo "preview-version=${PREVIEW_VERSION}" >> $GITHUB_OUTPUT
           echo "docker-tag-base=${DOCKER_TAG_BASE}" >> $GITHUB_OUTPUT
           echo "commit-sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
-          
+
           echo "📦 Preview version: ${PREVIEW_VERSION}"
           echo "🏷️  NPM dist-tag: ${DIST_TAG}"
           echo "🐳 Docker tag base: ${DOCKER_TAG_BASE}"
@@ -131,36 +131,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Update package versions
-        run: |
-          # Update hello package version
-          cd apps/hello
-          npm version ${{ needs.validate-and-prepare.outputs.preview-version }} --no-git-tag-version
-          echo "✅ Updated hello package to ${{ needs.validate-and-prepare.outputs.preview-version }}"
-          
-          # Update goodbye package version  
-          cd ../goodbye
-          npm version ${{ needs.validate-and-prepare.outputs.preview-version }} --no-git-tag-version
-          echo "✅ Updated goodbye package to ${{ needs.validate-and-prepare.outputs.preview-version }}"
-
       - name: Build packages
         run: pnpm packages:prepublish
 
-      - name: Publish hello package
+      - name: Publish package previews
         run: |
-          cd apps/hello
-          npm publish --tag ${{ needs.validate-and-prepare.outputs.dist-tag }} --access public
-          echo "✅ Published @stevedylandev/hello@${{ needs.validate-and-prepare.outputs.preview-version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Update hello package version
+          pnpm bump:preview
 
-      - name: Publish goodbye package
-        run: |
-          cd apps/goodbye  
-          npm publish --tag ${{ needs.validate-and-prepare.outputs.dist-tag }} --access public
-          echo "✅ Published @stevedylandev/goodbye@${{ needs.validate-and-prepare.outputs.preview-version }}"
+          # Update goodbye package version
+          pnpm release:preview
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   build-docker-images:
     name: Build Docker Images
@@ -210,17 +194,17 @@ jobs:
         run: |
           # Try to find PR for this branch
           PR_DATA=$(gh pr list --state=open --head="${{ github.ref_name }}" --base=main --json number,title,url --limit 1)
-          
+
           if [[ "$PR_DATA" != "[]" && -n "$PR_DATA" ]]; then
             PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number')
-            PR_TITLE=$(echo "$PR_DATA" | jq -r '.[0].title')  
+            PR_TITLE=$(echo "$PR_DATA" | jq -r '.[0].title')
             PR_URL=$(echo "$PR_DATA" | jq -r '.[0].url')
-            
+
             echo "pr-number=${PR_NUMBER}" >> $GITHUB_OUTPUT
             echo "pr-title=${PR_TITLE}" >> $GITHUB_OUTPUT
             echo "pr-url=${PR_URL}" >> $GITHUB_OUTPUT
             echo "has-pr=true" >> $GITHUB_OUTPUT
-            
+
             echo "✅ Found PR #${PR_NUMBER}: ${PR_TITLE}"
           else
             echo "has-pr=false" >> $GITHUB_OUTPUT
@@ -235,12 +219,12 @@ jobs:
         run: |
           # Build timestamp for display
           BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
+
           # Start building comment
           COMMENT_BODY="## 🚀 Preview Packages - \`${{ github.ref_name }}\`
 
           "
-          
+
           # NPM section
           if [[ "${{ needs.build-and-publish-npm.result }}" == "success" ]]; then
             COMMENT_BODY+="**NPM Packages:**
@@ -256,7 +240,7 @@ jobs:
 
           "
           fi
-          
+
           # Docker section
           if [[ "${{ needs.build-docker-images.result }}" == "success" ]]; then
             COMMENT_BODY+="**Docker Images:**
@@ -267,7 +251,7 @@ jobs:
 
           "
           fi
-          
+
           # Build info
           COMMENT_BODY+="**Build Info:**
           - 📝 Commit: \`${{ needs.validate-and-prepare.outputs.commit-sha }}\`
@@ -279,7 +263,7 @@ jobs:
           *🤖 This comment will be updated on subsequent preview builds*
 
           > **Note:** Preview packages and Docker images are automatically cleaned up by GitHub's retention policies. NPM dist-tags can be cleaned up manually using \`npm dist-tag rm @stevedylandev/hello ${{ needs.validate-and-prepare.outputs.dist-tag }}\`"
-          
+
           # Save to file for proper multiline handling
           echo "$COMMENT_BODY" > comment_body.txt
           echo "comment-file=comment_body.txt" >> $GITHUB_OUTPUT
@@ -290,7 +274,7 @@ jobs:
         run: |
           # Look for existing comment from github-actions bot
           COMMENT_ID=$(gh pr view ${{ steps.detect-pr.outputs.pr-number }} --json comments --jq '.comments[] | select(.author.login == "github-actions[bot]" and (.body | contains("🚀 Preview Packages"))) | .id' | head -1)
-          
+
           if [[ -n "$COMMENT_ID" ]]; then
             echo "existing-comment-id=${COMMENT_ID}" >> $GITHUB_OUTPUT
             echo "✅ Found existing comment ID: ${COMMENT_ID}"

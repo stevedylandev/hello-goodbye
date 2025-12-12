@@ -9,8 +9,10 @@
 		"changeset": "changeset",
 		"bump:stable": "changeset version",
 		"bump:next": "changeset version --snapshot next",
+		"bump:preview": "changeset version --snapshot preview",
 		"release:stable": "changeset publish",
 		"release:next": "changeset publish --no-git-tag --snapshot --tag next",
+		"release:preview": "changeset publish --no-git-tag --snapshot --tag preview",
 		"packages:prepublish": "pnpm -r prepublish"
 	},
 	"devDependencies": {
