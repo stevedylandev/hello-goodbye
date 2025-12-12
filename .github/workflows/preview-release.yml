@@ -131,9 +131,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm packages:prepublish
-
       - name: Update package versions
         run: |
           # Update hello package version
@@ -145,6 +142,9 @@ jobs:
           cd ../goodbye
           npm version ${{ needs.validate-and-prepare.outputs.preview-version }} --no-git-tag-version
           echo "✅ Updated goodbye package to ${{ needs.validate-and-prepare.outputs.preview-version }}"
+
+      - name: Build packages
+        run: pnpm packages:prepublish
 
       - name: Publish hello package
         run: |
