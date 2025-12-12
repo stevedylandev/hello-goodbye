@@ -131,20 +131,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Update package versions
+        run: |
+          # Update hello package version
+          cd apps/hello
+          npm version ${{ needs.validate-and-prepare.outputs.preview-version }} --no-git-tag-version
+          echo "✅ Updated hello package to ${{ needs.validate-and-prepare.outputs.preview-version }}"
+
+          # Update goodbye package version
+          cd ../goodbye
+          npm version ${{ needs.validate-and-prepare.outputs.preview-version }} --no-git-tag-version
+          echo "✅ Updated goodbye package to ${{ needs.validate-and-prepare.outputs.preview-version }}"
+
       - name: Build packages
         run: pnpm packages:prepublish
 
-      - name: Publish package previews
+      - name: Publish hello package
         run: |
-          # Update hello package version
-          pnpm bump:preview
-
-          # Update goodbye package version
-          pnpm release:preview
+          cd apps/hello
+          npm publish --tag ${{ needs.validate-and-prepare.outputs.dist-tag }} --access public
+          echo "✅ Published @stevedylandev/hello@${{ needs.validate-and-prepare.outputs.preview-version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish goodbye package
+        run: |
+          cd apps/goodbye
+          npm publish --tag ${{ needs.validate-and-prepare.outputs.dist-tag }} --access public
+          echo "✅ Published @stevedylandev/goodbye@${{ needs.validate-and-prepare.outputs.preview-version }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   build-docker-images:
     name: Build Docker Images
