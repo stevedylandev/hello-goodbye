@@ -1,0 +1,39 @@
+name: "Build: Hello-Goodbye Images"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image Version (Docker Tag)"
+        type: string
+        required: true
+
+jobs:
+  build-and-push-docker:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [hello, goodbye]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Build & Push
+        uses: ./.github/actions/build_docker_image
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}
+          dockerfile: apps/${{ matrix.app }}/Dockerfile
+          registry_user: ${{ github.actor }}
+          registry_token: ${{ secrets.GITHUB_TOKEN }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=ref,event=branch
+            type=sha

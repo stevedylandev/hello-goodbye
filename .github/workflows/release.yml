@@ -52,58 +52,68 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  build-docker-images:
-    name: Build and Push Docker Images
-    runs-on: ubuntu-latest
+  filter-published-apps:
+    name: Filter Published Apps
+    needs: changesets
     if: needs.changesets.outputs.published == 'true'
-    needs: [changesets]
+    runs-on: ubuntu-latest
+    outputs:
+      publishedApps: ${{ steps.publishedApps.outputs.output }}
+    steps:
+      - name: Filter Published Packages For Apps
+        uses: cloudposse/github-action-jq@main
+        id: publishedApps
+        with:
+          compact: true
+          input: ${{ needs.changesets.outputs.publishedPackages }}
+          # filter publishedPackages for apps (hello and goodbye)
+          script: |-
+            map(select(
+                 .name == "@stevedylandev/hello"
+              or .name == "@stevedylandev/goodbye"
+            )) | 
+            map({
+              name: (.name | sub("@stevedylandev/"; "")),
+              version: .version
+            })
+
+  build-and-push-docker-images:
+    name: ${{ matrix.apps.name }} ${{ matrix.apps.version }}
+    # if changesets published our npm packages, also build docker images
+    needs: [changesets, filter-published-apps]
+    if: needs.changesets.outputs.published == 'true' && needs.filter-published-apps.outputs.publishedApps != '[]'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
-        app: [hello, goodbye]
+        apps: ${{ fromJson(needs.filter-published-apps.outputs.publishedApps) }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
-      - name: Extract version from published packages
-        id: get-version
-        run: |
-          VERSION=$(echo '${{ needs.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-          if [ -z "$VERSION" ]; then
-            echo "Could not extract version from published packages"
-            exit 1
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build & Push
+        uses: ./.github/actions/build_docker_image
         with:
-          context: ./apps/${{ matrix.app }}
-          push: true
-          platforms: linux/amd64,linux/arm64
+          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.apps.name }}
+          dockerfile: apps/${{ matrix.apps.name }}/Dockerfile
+          registry_user: ${{ github.actor }}
+          registry_token: ${{ secrets.GITHUB_TOKEN }}
+          # construct docker tag using the changesets-reported version
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}:${{ steps.get-version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            type=semver,pattern={{version}},value=${{ matrix.apps.version }}
+            type=raw,value=latest
 
   create-github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     if: needs.changesets.outputs.published == 'true'
-    needs: [changesets, build-docker-images]
+    needs: [changesets, build-and-push-docker-images]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -132,8 +142,7 @@ jobs:
 
           # Add Docker image links
           RELEASE_NOTES+=$'\n\n## :whale: Docker images\n'
-          RELEASE_NOTES+="- [hello:$VERSION](https://github.com/${{ github.repository }}/pkgs/container/hello)"$'\n'
-          RELEASE_NOTES+="- [goodbye:$VERSION](https://github.com/${{ github.repository }}/pkgs/container/goodbye)"
+          RELEASE_NOTES+=$(echo '${{ needs.filter-published-apps.outputs.publishedApps }}' | jq -r '.[] | "- [\(.name):\(.version)](https://ghcr.io/${{ github.repository_owner }}/\(.name):\(.version))"')
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
