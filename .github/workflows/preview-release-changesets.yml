@@ -7,18 +7,14 @@ on:
         description: 'Custom suffix (overrides branch name)'
         type: string
         required: false
-      skip_npm:
-        description: 'Skip NPM publishing'
-        type: boolean
-        default: false
-      skip_docker:
-        description: 'Skip Docker builds'
-        type: boolean
-        default: false
-      force_pr_comment:
-        description: 'Force PR comment even if no PR detected'
-        type: boolean
-        default: false
+      publish_target:
+        description: 'Choose to publish just to NPM or NPM + ghcr'
+        type: choice
+        required: true
+        default: 'npm-and-ghcr'
+        options:
+          - npm-only
+          - npm-and-ghcr
 
 concurrency:
   group: prerelease-${{ github.ref_name }}
@@ -103,7 +99,6 @@ jobs:
     name: Build & Publish NPM
     runs-on: ubuntu-latest
     needs: validate-and-prepare
-    if: inputs.skip_npm != true
     permissions:
       contents: read
       id-token: write
@@ -165,7 +160,7 @@ jobs:
     name: Build Docker Images
     runs-on: ubuntu-latest
     needs: [validate-and-prepare, build-and-publish-npm]
-    if: inputs.skip_docker != true
+    if: inputs.publish_target == 'npm-and-ghcr'
     permissions:
       contents: read
       packages: write
@@ -194,7 +189,7 @@ jobs:
     name: Update PR Comment
     runs-on: ubuntu-latest
     needs: [validate-and-prepare, build-and-publish-npm, build-docker-images]
-    if: always() && (needs.build-and-publish-npm.result == 'success' || needs.build-docker-images.result == 'success' || inputs.force_pr_comment == true)
+    if: always() && (needs.build-and-publish-npm.result == 'success' || needs.build-docker-images.result == 'success')
     permissions:
       contents: read
       pull-requests: write
@@ -230,7 +225,7 @@ jobs:
 
       - name: Generate comment body
         id: comment
-        if: steps.detect-pr.outputs.has-pr == 'true' || inputs.force_pr_comment == true
+        if: steps.detect-pr.outputs.has-pr == 'true'
         run: |
           # Build timestamp for display
           BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -256,8 +251,8 @@ jobs:
           "
           fi
 
-          # Docker section
-          if [[ "${{ needs.build-docker-images.result }}" == "success" ]]; then
+          # Docker section - only show if Docker images were built
+          if [[ "${{ inputs.publish_target }}" == "npm-and-ghcr" && "${{ needs.build-docker-images.result }}" == "success" ]]; then
             COMMENT_BODY+="**Docker Images:**
           \`\`\`bash
           docker pull ghcr.io/${{ github.repository_owner }}/hello:${{ needs.validate-and-prepare.outputs.docker-tag-base }}-${{ needs.validate-and-prepare.outputs.commit-sha }}
@@ -272,6 +267,7 @@ jobs:
           - 📦 Version: \`${{ needs.build-and-publish-npm.outputs.published-version }}\`
           - 📝 Commit: \`${{ needs.validate-and-prepare.outputs.commit-sha }}\`
           - 🌿 Branch: \`${{ github.ref_name }}\`
+          - 🎯 Target: \`${{ inputs.publish_target }}\`
           - ⏰ Built: \`${BUILD_TIME}\`
           - 🔗 [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
@@ -319,11 +315,14 @@ jobs:
         run: |
           echo "## 📋 Preview Release Summary"
           echo "- Branch: ${{ github.ref_name }}"
+          echo "- Publish target: ${{ inputs.publish_target }}"
           echo "- Published version: ${{ needs.build-and-publish-npm.outputs.published-version }}"
           echo "- NPM dist-tag: ${{ needs.validate-and-prepare.outputs.dist-tag }}"
-          echo "- Docker tag: ${{ needs.validate-and-prepare.outputs.docker-tag-base }}-${{ needs.validate-and-prepare.outputs.commit-sha }}"
+          if [[ "${{ inputs.publish_target }}" == "npm-and-ghcr" ]]; then
+            echo "- Docker tag: ${{ needs.validate-and-prepare.outputs.docker-tag-base }}-${{ needs.validate-and-prepare.outputs.commit-sha }}"
+            echo "- Docker build: ${{ needs.build-docker-images.result }}"
+          fi
           echo "- NPM publish: ${{ needs.build-and-publish-npm.result }}"
-          echo "- Docker build: ${{ needs.build-docker-images.result }}"
           echo "- PR detected: ${{ steps.detect-pr.outputs.has-pr }}"
           if [[ "${{ steps.detect-pr.outputs.has-pr }}" == "true" ]]; then
             echo "- PR number: #${{ steps.detect-pr.outputs.pr-number }}"
