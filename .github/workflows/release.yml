@@ -107,7 +107,8 @@ jobs:
           # construct docker tag using the changesets-reported version
           tags: |
             type=semver,pattern={{version}},value=${{ matrix.apps.version }}
-            type=raw,value=latest
+          flavor: |
+            latest=false
 
   create-github-release:
     name: Create GitHub Release

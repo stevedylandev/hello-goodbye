@@ -190,6 +190,8 @@ jobs:
           tags: |
             type=raw,value=${{ needs.validate-and-prepare.outputs.docker-tag-base }}
             type=raw,value=${{ needs.validate-and-prepare.outputs.docker-tag-base }}-${{ needs.validate-and-prepare.outputs.commit-sha }}
+          flavor: |
+            latest=false
 
   detect-pr-and-comment:
     name: Update PR Comment

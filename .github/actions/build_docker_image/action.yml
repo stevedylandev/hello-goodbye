@@ -26,6 +26,10 @@ inputs:
     description: docker/build-push-action#build-args
     required: false
 
+  flavor:
+    description: 'Docker metadata flavor configuration (e.g., latest=false)'
+    required: false
+
 runs:
   using: composite
   steps:
@@ -35,6 +39,7 @@ runs:
       with:
         images: ${{ inputs.image }}
         tags: ${{ inputs.tags }}
+        flavor: ${{ inputs.flavor }}
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3

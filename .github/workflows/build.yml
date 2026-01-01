@@ -37,3 +37,5 @@ jobs:
             type=semver,pattern={{version}},value=${{ inputs.version }}
             type=ref,event=branch
             type=sha
+          flavor: |
+            latest=false
